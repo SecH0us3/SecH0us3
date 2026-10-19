@@ -104,7 +104,9 @@
 - 🌐 **Live Demo:** [waf.secmy.app](https://waf.secmy.app/)
 
 ```bash
-npx @waf-checker/cli --target https://example.com --category xss,sqli
+npx @waf-checker/cli \
+  --target https://example.com \
+  --category xss,sqli
 ```
 
 </td>

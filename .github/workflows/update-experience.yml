@@ -1,0 +1,74 @@
+name: Update Experience Counters
+
+on:
+  schedule:
+    # Run at midnight on January 1st every year
+    - cron: '0 0 1 1 *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update-experience:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Calculate OS Experience
+        run: |
+          python3 - << 'EOF'
+          import datetime, re
+
+          current_year = datetime.date.today().year
+
+          windows_start = 2008
+          linux_start = 2011
+          macos_start = 2021
+
+          win_years = current_year - windows_start
+          lin_years = current_year - linux_start
+          mac_years = current_year - macos_start
+
+          def make_bar(years, max_years=20):
+              return "█" * min(years, max_years) + "░" * max(0, max_years - years)
+
+          with open('README.md', 'r', encoding='utf-8') as f:
+              content = f.read()
+
+          # Pattern to replace inside DYNAMIC_OS_EXPERIENCE block
+          table_rows = [
+              "| Platform | Experience | Timeline | Practical Focus |",
+              "| :--- | :---: | :---: | :--- |",
+              f"| <img src=\"https://raw.githubusercontent.com/devicons/devicon/master/icons/apple/apple-original.svg\" width=\"18\" valign=\"middle\"/> **macOS** | `{mac_years} Years` | `{macos_start} - Present` | `{make_bar(mac_years)}` Unix command line, development workflow, security tools |",
+              f"| <img src=\"https://raw.githubusercontent.com/devicons/devicon/master/icons/linux/linux-original.svg\" width=\"18\" valign=\"middle\"/> **Linux** | `{lin_years} Years` | `{linux_start} - Present` | `{make_bar(lin_years)}` Server setup, Bash scripting, system hardening, service management |",
+              f"| <img src=\"https://raw.githubusercontent.com/devicons/devicon/master/icons/windows8/windows8-original.svg\" width=\"18\" valign=\"middle\"/> **Windows** | `{win_years} Years` | `{windows_start} - Present` | `{make_bar(win_years)}` System administration, WinAPI, enterprise troubleshooting |",
+          ]
+          table_content = "\n".join(table_rows)
+
+          pattern = r'(<!-- DYNAMIC_OS_EXPERIENCE:START -->\n)([\s\S]*?)(\n<!-- DYNAMIC_OS_EXPERIENCE:END -->)'
+          replacement = r'\g<1>' + table_content.strip() + r'\g<3>'
+
+          new_content = re.sub(pattern, replacement, content)
+
+          max_years = max(win_years, lin_years, mac_years)
+          new_content = re.sub(r'(\d+:\d+:\d+\s+up\s+)\d+(\s+years)', rf'\g<1>{max_years}\g<2>', new_content)
+
+          with open('README.md', 'w', encoding='utf-8') as f:
+              f.write(new_content)
+
+          print(f"Updated experience counters: Windows {win_years}y, Linux {lin_years}y, macOS {mac_years}y")
+          EOF
+
+      - name: Commit and push changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          if ! git diff --quiet README.md; then
+            git add README.md
+            git commit -m "chore(profile): dynamically update OS experience counters"
+            git push
+          else
+            echo "No updates needed"
+          fi

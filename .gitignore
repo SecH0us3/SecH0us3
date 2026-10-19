@@ -1,0 +1,7 @@
+# Cloudflare Worker for WKD
+wkd-worker/
+
+# Local env and cache
+.wrangler/
+node_modules/
+.DS_Store
